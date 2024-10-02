@@ -19,7 +19,19 @@ typedef struct {
     bool running;
 }Jogo;
 
-ALLEGRO_BITMAP* carregar_imagem_redimensionada(char* img, int tamanho) {
+typedef struct {
+    ALLEGRO_BITMAP* img_bloco;
+    ALLEGRO_BITMAP* img_grama;
+}Cenario;
+
+ALLEGRO_BITMAP* carregar_imagem_cenario(char img[]) {
+    ALLEGRO_BITMAP* bitmap = al_load_bitmap(img);
+    assert(bitmap);
+
+    return bitmap;
+}
+
+ALLEGRO_BITMAP* carregar_imagem_redimensionada(char img[], int tamanho) {
     ALLEGRO_BITMAP* bitmap = al_load_bitmap(img);
     assert(bitmap);
 
@@ -39,7 +51,7 @@ ALLEGRO_BITMAP* carregar_imagem_redimensionada(char* img, int tamanho) {
     return new_bitmap;
 }
 
-void inicializa_personagem(Personagem* p, char* img_direita, char* img_esquerda, int pos_x, int pos_y, int vel, int tamanho) {
+void inicializa_personagem(Personagem* p, char img_direita[], char img_esquerda[], int pos_x, int pos_y, int vel, int tamanho) {
     p->direita = carregar_imagem_redimensionada(img_direita, tamanho);
     p->esquerda = carregar_imagem_redimensionada(img_esquerda, tamanho);
     p->pos_x = pos_x;
@@ -115,6 +127,7 @@ void inicializa_allegro(Jogo* jogo) {
     jogo->timer = al_create_timer(1.0 / 60);
     jogo->queue = al_create_event_queue();
 
+
     al_register_event_source(jogo->queue, al_get_keyboard_event_source());
     al_register_event_source(jogo->queue, al_get_display_event_source(jogo->display));
     al_register_event_source(jogo->queue, al_get_timer_event_source(jogo->timer));
@@ -124,22 +137,26 @@ void inicializa_allegro(Jogo* jogo) {
     al_start_timer(jogo->timer);
 }
 
-void finaliza_jogo(Jogo* jogo, Personagem* personagem) {
+void finaliza_jogo(Jogo* jogo, Personagem* personagem, Cenario* cenario) {
     al_destroy_display(jogo->display);
     al_destroy_event_queue(jogo->queue);
     al_destroy_timer(jogo->timer);
     al_destroy_bitmap(personagem->direita);
     al_destroy_bitmap(personagem->esquerda);
+    al_destroy_bitmap(cenario->img_bloco);
 }
 
 
 int main() {
     Jogo jogo;
     Personagem personagem;
+    Cenario cenario;
     bool key[4] = { false, false, false, false };  // UP, DOWN, RIGHT, LEFT
 
     inicializa_allegro(&jogo);
     inicializa_personagem(&personagem, "./img/bruxa-right.png", "./img/bruxa-left.png", 200, 200, 5, 10);
+    cenario.img_bloco = al_create_bitmap("./img/bloco.png", 200, 500);
+
 
     // loop principal do jogo
     while (jogo.running) {
@@ -163,8 +180,7 @@ int main() {
         }
     }
 
-
-    finaliza_jogo(&jogo, &personagem);
+    finaliza_jogo(&jogo, &personagem, &cenario);
 
     return 0;
 }
