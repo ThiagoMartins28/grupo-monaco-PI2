@@ -1,5 +1,9 @@
 ﻿  MonacoGame.c
-C:\Users\gabriel.constantino\source\repos\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(158,42): warning C4047: 'função': 'int' difere em níveis de indireção de 'char [16]'
-C:\Users\gabriel.constantino\source\repos\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(158,42): warning C4024: 'al_create_bitmap': tipos diferentes para parâmetro formal e real 1
-C:\Users\gabriel.constantino\source\repos\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(158,66): warning C4020: 'al_create_bitmap': muitos parâmetros reais
-  MonacoGame.vcxproj -> C:\Users\gabriel.constantino\source\repos\grupo-monaco-PI2\MonacoGame\x64\Debug\MonacoGame.exe
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(35,21): warning C4101: 'left': unreferenced local variable
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(38,10): warning C4101: 'facing_left': unreferenced local variable
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(37,16): warning C4101: 'pos_y': unreferenced local variable
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(37,9): warning C4101: 'pos_x': unreferenced local variable
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(36,21): warning C4101: 'atual': unreferenced local variable
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(34,21): warning C4101: 'right': unreferenced local variable
+C:\Users\gabco\grupo-monaco-PI2\MonacoGame\MonacoGame\MonacoGame.c(37,23): warning C4101: 'vel': unreferenced local variable
+  MonacoGame.vcxproj -> C:\Users\gabco\grupo-monaco-PI2\MonacoGame\x64\Debug\MonacoGame.exe
