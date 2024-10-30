@@ -20,7 +20,7 @@ int main() {
 
     bool running = true;
     enum GameState state = menu;
-    int btn_x = 550, btn_y = 200, btn_w = 200, btn_h = 80; // Botão Start Game
+    int btn_x = 550, btn_y = 200, btn_w = 200, btn_h = 80; // BotÃ£o Start Game
 
     // Display
     ALLEGRO_DISPLAY* display = al_create_display(1280, 716);
@@ -51,7 +51,7 @@ int main() {
     // Menu
     ALLEGRO_BITMAP* bg_2 = al_load_bitmap("./img/menu-2.jpg");
 
-    // Poções e cesto para o minigame  
+    // PoÃ§Ãµes e cesto para o minigame  
     int potion_x = rand() % 1280;
     int potion_y = 0;
     int potion_speed = 5;
@@ -103,7 +103,7 @@ int main() {
                     pos_y += vel_y;
                     vel_y += gravity;
 
-                    // Limita a posição ao nível do chão
+                    // Limita a posiÃ§Ã£o ao nÃ­vel do chÃ£o
                     if (pos_y >= ground_y) {
                         pos_y = ground_y;
                         vel_y = 0;
@@ -153,9 +153,9 @@ int main() {
             if (event.type == ALLEGRO_EVENT_TIMER) {
                 pos_x += vel_x;
 
-                // Atualiza a posição do cesto com a bruxa
-                basket_x = pos_x + (new_w / 2) - (basket_w / 2); // Centralizado horizontalmente em relação à bruxa
-                basket_y = pos_y - basket_h; // Colocado em cima da cabeça da bruxa
+                // Atualiza a posiÃ§Ã£o do cesto com a bruxa
+                basket_x = pos_x + (new_w / 2) - (basket_w / 2); // Centralizado horizontalmente em relaÃ§Ã£o Ã  bruxa
+                basket_y = pos_y - basket_h; // Colocado em cima da cabeÃ§a da bruxa
 
                 // Aplica gravidade e atualiza o pulo
                 if (is_jumping) {
@@ -168,14 +168,14 @@ int main() {
                     }
                 }
 
-                // Movimento da poção
+                // Movimento da poÃ§Ã£o
                 potion_y += potion_speed;
                 if (potion_y > 720) {
                     potion_x = rand() % 1280;
                     potion_y = 0;
                 }
 
-                // Verifica colisão entre cesto e poção
+                // Verifica colisÃ£o entre cesto e poÃ§Ã£o
                 if (potion_x + 50 > basket_x && potion_x < basket_x + basket_w &&
                     potion_y + 50 > basket_y && potion_y < basket_y + basket_h) {
                     score++;
@@ -183,7 +183,7 @@ int main() {
                     potion_y = 0;
                 }
 
-                // Desenha o cenário do minigame
+                // Desenha o cenÃ¡rio do minigame
                 al_clear_to_color(al_map_rgb(200, 100, 100));
                 al_draw_scaled_bitmap(pg, 0, 0, w_original, h_original, pos_x, pos_y, new_w, new_h, 0);
                 al_draw_filled_rectangle(basket_x, basket_y, basket_x + basket_w, basket_y + basket_h, al_map_rgb(0, 255, 0));
@@ -218,6 +218,7 @@ int main() {
     al_destroy_bitmap(potion);
     al_destroy_font(font);
     al_destroy_display(display);
+    al_destroy_timer(timer);
     al_destroy_event_queue(event_queue);
 
     return 0;
