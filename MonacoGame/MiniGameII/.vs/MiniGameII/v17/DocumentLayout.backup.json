@@ -1,0 +1,49 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\gabco\\grupo-monaco-PI2\\MonacoGame\\MiniGameII\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{079189D6-F2EA-40C9-AE96-4D1B8D58B249}|MiniGameII\\MiniGameII.vcxproj|C:\\Users\\gabco\\grupo-monaco-PI2\\MonacoGame\\MiniGameII\\MiniGameII\\MiniGameII.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{079189D6-F2EA-40C9-AE96-4D1B8D58B249}|MiniGameII\\MiniGameII.vcxproj|solutionrelative:MiniGameII\\MiniGameII.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{b1e99781-ab81-11d0-b683-00aa00a3ee26}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MiniGameII.c",
+              "DocumentMoniker": "C:\\Users\\gabco\\grupo-monaco-PI2\\MonacoGame\\MiniGameII\\MiniGameII\\MiniGameII.c",
+              "RelativeDocumentMoniker": "MiniGameII\\MiniGameII.c",
+              "ToolTip": "C:\\Users\\gabco\\grupo-monaco-PI2\\MonacoGame\\MiniGameII\\MiniGameII\\MiniGameII.c",
+              "RelativeToolTip": "MiniGameII\\MiniGameII.c",
+              "ViewState": "AgIAAHIAAAAAAAAAAADwv30AAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2024-10-30T14:33:27.331Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
