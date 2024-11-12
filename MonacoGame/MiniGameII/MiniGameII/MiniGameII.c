@@ -208,7 +208,7 @@ int main() {
                         item.h_original = al_get_bitmap_height(pocao);
                         item.new_w = al_get_bitmap_width(pocao) / 6;
                         item.new_h = al_get_bitmap_height(pocao) / 6;
-                        item.is_visible = true;
+                        item.is_visible = false;
                     }
 
                     // Desativa ataque se sair da tela
@@ -261,7 +261,7 @@ int main() {
             }
 
             // Desenha item
-            if (item.is_visible) {
+            if (!item.is_visible) {
                 al_draw_scaled_bitmap(pocao, 0, 0, item.w_original, item.h_original, item.pos_x, item.pos_y, item.new_w, item.new_h, 0);
             }
 
