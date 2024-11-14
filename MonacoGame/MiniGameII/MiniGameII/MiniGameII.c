@@ -6,12 +6,17 @@
 #include <math.h>
 
 #define MAX_ATTACKS 5 // Número máximo de ataques
+int vidas = 3;
 
 typedef struct {
     int w_original;
     int h_original;
     int new_w;
     int new_h;
+    int w_original_left;
+    int h_original_left;
+    int new_w_left;
+    int new_h_left;
     int pos_x;
     int pos_y;
     int vel_x;
@@ -92,10 +97,8 @@ void draw_ground(ALLEGRO_BITMAP* bloco, Ground* ground, int qtd, int espaco) {
     }
 }
 
-// Carregar e exibi a caixa de texto
-void draw_text_box(ALLEGRO_FONT* font, const char* text) {
-    al_draw_filled_rectangle(400, 300, 880, 400, al_map_rgb(255, 255, 255)); 
-    al_draw_text(font, al_map_rgb(0, 0, 0), 640, 340, ALLEGRO_ALIGN_CENTER, text); 
+bool checar_colisao(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
+    return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2);
 }
 
 int main() {
@@ -119,19 +122,23 @@ int main() {
     al_start_timer(timer);
 
     // Personagem
-    ALLEGRO_BITMAP* bruxa = al_load_bitmap("./img/bruxa-right.png");
+    ALLEGRO_BITMAP* bruxa_right = al_load_bitmap("./img/bruxa-right.png");
     ALLEGRO_BITMAP* bruxa_left = al_load_bitmap("./img/bruxa-left.png");
     Personagem personagem;
-    personagem.w_original = al_get_bitmap_width(bruxa);
-    personagem.h_original = al_get_bitmap_height(bruxa);
-    personagem.new_w = al_get_bitmap_width(bruxa) / 6;
-    personagem.new_h = al_get_bitmap_height(bruxa) / 6;
+    personagem.w_original = al_get_bitmap_width(bruxa_right);
+    personagem.h_original = al_get_bitmap_height(bruxa_right);
+    personagem.new_w = al_get_bitmap_width(bruxa_right) * 0.26;
+    personagem.new_h = al_get_bitmap_height(bruxa_right) * 0.26;
     personagem.pos_x = 20;
     personagem.pos_y = 500;
     personagem.vel_x = 0;
     personagem.vel_y = 0;
     personagem.vel = 10;
     personagem.direcao = 1;
+
+    // Vidas
+    Ground vidas; // !ALERTA DE GAMBIARRA!: usando a struct de Ground pra desenhar as imagens de vida
+    ALLEGRO_BITMAP* coracao = load_ground("./img/coracao.png", &vidas, 5, 20, 0.20);
 
     // Inimigo
     ALLEGRO_BITMAP* cobra = al_load_bitmap("./img/cobra_esq.png");
@@ -228,13 +235,12 @@ int main() {
 
             // Renderização
             al_clear_to_color(al_map_rgb(105, 111, 255));
-            //al_draw_scaled_bitmap(bruxa, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
-            
+
             // Escolha da imagem a partir da direção
             ALLEGRO_BITMAP* personagem_img;
 
             if (personagem.direcao == 1) {
-                personagem_img = bruxa;
+                personagem_img = bruxa_right;
             }
             else {
                 personagem_img = bruxa_left;
@@ -260,16 +266,16 @@ int main() {
                 draw_ground(bloco, &ground, qtd_blocos, espaco);
             }
 
+            if (coracao) {
+                int qtd_coracao = 3;
+                int espaco = 2;
+
+                draw_ground(coracao, &vidas, qtd_coracao, espaco);
+            }
+
             // Desenha item
             if (!item.is_visible) {
                 al_draw_scaled_bitmap(pocao, 0, 0, item.w_original, item.h_original, item.pos_x, item.pos_y, item.new_w, item.new_h, 0);
-            }
-
-            // Verificar se o personagem pegou o item
-            float distancia_item = sqrt(pow(item.pos_x - personagem.pos_x, 2) + pow(item.pos_y - personagem.pos_y, 2));
-            if (distancia_item < 30 && item.is_visible) {
-                item.is_visible = false; // Ocultar item após coleta
-                draw_text_box(font, "Item coletado!"); // Exibir a caixa de texto
             }
 
             al_flip_display();
@@ -322,11 +328,12 @@ int main() {
     al_destroy_display(display);
     al_destroy_event_queue(event_queue);
     al_destroy_timer(timer);
-    al_destroy_bitmap(bruxa);
+    al_destroy_bitmap(bruxa_right);
     al_destroy_bitmap(bruxa_left);
     al_destroy_bitmap(attack_img);
     al_destroy_bitmap(cobra);
     al_destroy_bitmap(bloco);
+    al_destroy_bitmap(coracao);
     al_destroy_font(font);
     al_destroy_bitmap(pocao);
 
