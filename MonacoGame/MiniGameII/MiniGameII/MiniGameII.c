@@ -6,7 +6,8 @@
 #include <math.h>
 
 #define MAX_ATTACKS 5 // Número máximo de ataques
-int vidas = 3;
+double ultimo_tempo_colisao = 0;
+double colisoes = 0.5;
 
 typedef struct {
     int w_original;
@@ -97,8 +98,15 @@ void draw_ground(ALLEGRO_BITMAP* bloco, Ground* ground, int qtd, int espaco) {
     }
 }
 
-bool checar_colisao(int x1, int y1, int w1, int h1, int x2, int y2, int w2, int h2) {
-    return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2);
+void draw_life(ALLEGRO_BITMAP* bloco, Ground* vida, int vidas_restantes, int espaco) {
+    for (int i = 0; i < vidas_restantes; i++) { // Desenhar apenas até o número de vidas restantes
+        int posicao_x = vida->pos_x + (vida->new_w + espaco) * i;
+
+        al_draw_scaled_bitmap(bloco,
+            0, 0, vida->w_original, vida->h_original,
+            posicao_x, vida->pos_y, vida->new_w, vida->new_h,
+            0);
+    }
 }
 
 int main() {
@@ -137,6 +145,7 @@ int main() {
     personagem.direcao = 1;
 
     // Vidas
+    int numero_de_vidas = 3;
     Ground vidas; // !ALERTA DE GAMBIARRA!: usando a struct de Ground pra desenhar as imagens de vida
     ALLEGRO_BITMAP* coracao = load_ground("./img/coracao.png", &vidas, 5, 20, 0.20);
 
@@ -149,7 +158,7 @@ int main() {
     enemy.new_h = al_get_bitmap_height(cobra) / 6;
     enemy.pos_x = 1000;
     enemy.pos_y = 540;
-    enemy.vel_x = -3;
+    enemy.vel_x = -2;
     enemy.is_visible = true;
 
     // Item drop
@@ -185,7 +194,7 @@ int main() {
         }
 
         if (event.type == ALLEGRO_EVENT_TIMER) {
-            // Movimento do personagem
+            // Movimento de pulo do personagem
             personagem.pos_x += personagem.vel_x;
             if (is_jumping) {
                 personagem.pos_y += personagem.vel_y;
@@ -194,6 +203,39 @@ int main() {
                     personagem.pos_y = ground_y;
                     personagem.vel_y = 0;
                     is_jumping = false;
+                }
+            }
+
+            // Colisão
+            if (enemy.is_visible) {
+
+                bool colidiu = personagem.pos_x < enemy.pos_x + enemy.new_w &&
+                    personagem.pos_x + personagem.new_w > enemy.pos_x &&
+                    personagem.pos_y < enemy.pos_y + enemy.new_h &&
+                    personagem.pos_y + personagem.new_h > enemy.pos_y;
+
+                if (colidiu) {
+
+                    double tempo_atual = al_get_time();
+
+                    if (tempo_atual - ultimo_tempo_colisao >= colisoes) {
+                        numero_de_vidas--;
+                        ultimo_tempo_colisao = tempo_atual;
+
+                        // Se as vidas acabarem, acaba o jogo
+                        if (numero_de_vidas <= 0) {
+                            running = false;
+                            printf("Fim de jogo!");
+                        }
+                    }
+                }
+
+                // Movimento contínuo do inimigo
+                enemy.pos_x += enemy.vel_x;
+
+                // Fazer o inimigo reaparecer do outro lado da tela, se sair
+                if (enemy.pos_x + enemy.new_w < 0) { // Saiu pela esquerda
+                    enemy.pos_x = 1280; // Reaparece no lado direito
                 }
             }
 
@@ -270,7 +312,7 @@ int main() {
                 int qtd_coracao = 3;
                 int espaco = 2;
 
-                draw_ground(coracao, &vidas, qtd_coracao, espaco);
+                draw_life(coracao, &vidas, numero_de_vidas, espaco);
             }
 
             // Desenha item
