@@ -46,6 +46,7 @@ typedef struct {
     float pos_y;
     float vel_x;
     int direcao;
+    ALLEGRO_BITMAP* img;
     bool active;
 } Ataque;
 
@@ -150,19 +151,19 @@ int main() {
     ALLEGRO_BITMAP* coracao = load_ground("./img/coracao.png", &vidas, 5, 20, 0.20);
 
     // Inimigo
-    ALLEGRO_BITMAP* cobra = al_load_bitmap("./img/cobra_esq.png");
+    ALLEGRO_BITMAP* cobra = al_load_bitmap("./img/gelo.png");
     Enemy enemy;
     enemy.w_original = al_get_bitmap_width(cobra);
     enemy.h_original = al_get_bitmap_height(cobra);
-    enemy.new_w = al_get_bitmap_width(cobra) / 6;
-    enemy.new_h = al_get_bitmap_height(cobra) / 6;
+    enemy.new_w = al_get_bitmap_width(cobra) / 4.5;
+    enemy.new_h = al_get_bitmap_height(cobra) / 4.5;
     enemy.pos_x = 1000;
     enemy.pos_y = 540;
     enemy.vel_x = -2;
     enemy.is_visible = true;
 
     // Item drop
-    ALLEGRO_BITMAP* pocao = al_load_bitmap("./img/pocao.png");
+    ALLEGRO_BITMAP* pocao = al_load_bitmap("./img/PNG/azul.png");
     Item item;
     item.w_original = al_get_bitmap_width(pocao);
     item.h_original = al_get_bitmap_height(pocao);
@@ -181,6 +182,7 @@ int main() {
 
     // Ataques
     ALLEGRO_BITMAP* attack_img = al_load_bitmap("./img/fogo.png");
+    ALLEGRO_BITMAP* attack_img_left = al_load_bitmap("./img/fogo_left.png");
     Ataque ataques[MAX_ATTACKS] = { 0 }; // Array para os ataques
 
 
@@ -292,7 +294,7 @@ int main() {
 
             for (int i = 0; i < MAX_ATTACKS; i++) {
                 if (ataques[i].active) {
-                    al_draw_scaled_bitmap(attack_img, 0, 0, al_get_bitmap_width(attack_img), al_get_bitmap_height(attack_img), ataques[i].pos_x, ataques[i].pos_y, ataques[i].w, ataques[i].h, 0);
+                    al_draw_scaled_bitmap(ataques[i].img, 0, 0, al_get_bitmap_width(ataques[i].img), al_get_bitmap_height(ataques[i].img), ataques[i].pos_x, ataques[i].pos_y, ataques[i].w, ataques[i].h, 0);
                 }
             }
 
@@ -344,10 +346,21 @@ int main() {
                 for (int i = 0; i < MAX_ATTACKS; i++) {
                     if (!ataques[i].active) {
                         ataques[i].active = true;
-                        ataques[i].pos_x = personagem.pos_x + personagem.new_w;
-                        ataques[i].pos_y = personagem.pos_y + personagem.new_h / 2;
-                        ataques[i].w = al_get_bitmap_width(attack_img) / 6;
-                        ataques[i].h = al_get_bitmap_height(attack_img) / 6;
+
+                        if (personagem.direcao == 1) {
+                            ataques[i].img = attack_img;
+                            ataques[i].pos_x = personagem.pos_x + personagem.new_w;
+                        }
+                        else if (personagem.direcao == -1){
+                            ataques[i].img = attack_img_left;
+                            ataques[i].pos_x = personagem.pos_x - (al_get_bitmap_width(attack_img_left) / 6);
+                        }
+
+                        ataques[i].pos_y = personagem.pos_y + personagem.new_h / 2 - (al_get_bitmap_height(ataques[i].img) / 6) / 2;
+
+                        ataques[i].w = al_get_bitmap_width(ataques[i].img) / 6;
+                        ataques[i].h = al_get_bitmap_height(ataques[i].img) / 6;
+
                         ataques[i].vel_x = 5 * personagem.direcao;
                         break;
                     }

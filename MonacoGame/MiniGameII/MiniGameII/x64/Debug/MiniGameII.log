@@ -1,5 +1,5 @@
 ﻿  MiniGameII.c
-C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\MiniGameII\MiniGameII.c(73,45): warning C4133: 'função': tipos incompatíveis - de 'int *' para 'const char *'
-C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\MiniGameII\MiniGameII.c(150,43): warning C4133: 'função': tipos incompatíveis - de 'char [18]' para 'int *'
-C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\MiniGameII\MiniGameII.c(180,41): warning C4133: 'função': tipos incompatíveis - de 'char [16]' para 'int *'
+C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\MiniGameII\MiniGameII.c(74,45): warning C4133: 'função': tipos incompatíveis - de 'int *' para 'const char *'
+C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\MiniGameII\MiniGameII.c(151,43): warning C4133: 'função': tipos incompatíveis - de 'char [18]' para 'int *'
+C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\MiniGameII\MiniGameII.c(181,41): warning C4133: 'função': tipos incompatíveis - de 'char [16]' para 'int *'
   MiniGameII.vcxproj -> C:\Users\gabriel\Documents\grupo-monaco-PI2\MonacoGame\MiniGameII\x64\Debug\MiniGameII.exe
