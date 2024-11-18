@@ -9,6 +9,12 @@
 double ultimo_tempo_colisao = 0;
 double colisoes = 0.5;
 
+enum GameState {
+    menu,
+    game,
+    next
+};
+
 typedef struct {
     int w_original;
     int h_original;
@@ -113,8 +119,13 @@ void draw_life(ALLEGRO_BITMAP* bloco, Ground* vida, int vidas_restantes, int esp
 int main() {
     al_init();
     al_install_keyboard();
+    al_install_mouse();
     al_init_image_addon();
     al_init_primitives_addon();
+    al_init_font_addon();
+
+    enum GameState state = menu;
+    int btn_x = 550, btn_y = 200, btn_w = 200, btn_h = 80; // Botão Start Game
 
     bool running = true;
     bool is_jumping = false;
@@ -128,7 +139,11 @@ int main() {
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
     al_register_event_source(event_queue, al_get_keyboard_event_source());
+    al_register_event_source(event_queue, al_get_mouse_event_source());
     al_start_timer(timer);
+
+    // Menu
+    ALLEGRO_BITMAP* bg_2 = al_load_bitmap("./img/menu-2.jpg");
 
     // Personagem
     ALLEGRO_BITMAP* bruxa_right = al_load_bitmap("./img/bruxa-right.png");
@@ -195,135 +210,155 @@ int main() {
             running = false;
         }
 
-        if (event.type == ALLEGRO_EVENT_TIMER) {
-            // Movimento de pulo do personagem
-            personagem.pos_x += personagem.vel_x;
-            if (is_jumping) {
-                personagem.pos_y += personagem.vel_y;
-                personagem.vel_y += gravity;
-                if (personagem.pos_y >= ground_y) {
-                    personagem.pos_y = ground_y;
-                    personagem.vel_y = 0;
-                    is_jumping = false;
+        // Estado atual: menu
+        if (state == menu) {
+            al_clear_to_color(al_map_rgb(0, 0, 0));
+            al_draw_bitmap(bg_2, 0, 0, 0);
+            al_draw_filled_rectangle(btn_x, btn_y, btn_x + btn_w, btn_y + btn_h, al_map_rgb(162, 40, 206));
+            al_draw_text(font, al_map_rgb(255, 255, 255), btn_x + btn_w / 2, btn_y + btn_h / 4, ALLEGRO_ALIGN_CENTRE, "Start Game");
+            al_flip_display();
+
+            if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
+                if (event.mouse.x >= btn_x && event.mouse.x <= btn_x + btn_w &&
+                    event.mouse.y >= btn_y && event.mouse.y <= btn_y + btn_h) {
+                    state = game;
                 }
             }
+        }
 
-            // Colisão
-            if (enemy.is_visible) {
+        // Estado atual: primeira fase do jogo
+        else if (state == game) {
+            if (event.type == ALLEGRO_EVENT_TIMER) {
+                // Movimento de pulo do personagem
+                personagem.pos_x += personagem.vel_x;
+                if (is_jumping) {
+                    personagem.pos_y += personagem.vel_y;
+                    personagem.vel_y += gravity;
+                    if (personagem.pos_y >= ground_y) {
+                        personagem.pos_y = ground_y;
+                        personagem.vel_y = 0;
+                        is_jumping = false;
+                    }
+                }
 
-                bool colidiu = personagem.pos_x < enemy.pos_x + enemy.new_w &&
-                    personagem.pos_x + personagem.new_w > enemy.pos_x &&
-                    personagem.pos_y < enemy.pos_y + enemy.new_h &&
-                    personagem.pos_y + personagem.new_h > enemy.pos_y;
+                // Colisão
+                if (enemy.is_visible) {
 
-                if (colidiu) {
+                    bool colidiu = personagem.pos_x < enemy.pos_x + enemy.new_w &&
+                        personagem.pos_x + personagem.new_w > enemy.pos_x &&
+                        personagem.pos_y < enemy.pos_y + enemy.new_h &&
+                        personagem.pos_y + personagem.new_h > enemy.pos_y;
 
-                    double tempo_atual = al_get_time();
+                    if (colidiu) {
 
-                    if (tempo_atual - ultimo_tempo_colisao >= colisoes) {
-                        numero_de_vidas--;
-                        ultimo_tempo_colisao = tempo_atual;
+                        double tempo_atual = al_get_time();
 
-                        // Se as vidas acabarem, acaba o jogo
-                        if (numero_de_vidas <= 0) {
-                            running = false;
-                            printf("Fim de jogo!");
+                        if (tempo_atual - ultimo_tempo_colisao >= colisoes) {
+                            numero_de_vidas--;
+                            ultimo_tempo_colisao = tempo_atual;
+
+                            // Se as vidas acabarem, acaba o jogo
+                            if (numero_de_vidas <= 0) {
+                                running = false;
+                                printf("Fim de jogo!");
+                            }
+                        }
+                    }
+
+                    // Movimento contínuo do inimigo
+                    enemy.pos_x += enemy.vel_x;
+
+                    // Fazer o inimigo reaparecer do outro lado da tela, se sair
+                    if (enemy.pos_x + enemy.new_w < 0) { // Saiu pela esquerda
+                        enemy.pos_x = 1280; // Reaparece no lado direito
+                    }
+                }
+
+                // Controle dos ataques
+                for (int i = 0; i < MAX_ATTACKS; i++) {
+                    if (ataques[i].active) {
+                        ataques[i].pos_x += ataques[i].vel_x;
+
+                        // Colisão com o inimigo
+                        float distancia = sqrt(pow(enemy.pos_x - ataques[i].pos_x, 2) + pow(enemy.pos_y - ataques[i].pos_y, 2));
+                        if (distancia < 50 && enemy.is_visible) {
+                            enemy.is_visible = false;
+                            ataques[i].active = false;
+
+                            // Inicializar item na posição do inimigo derrotado
+                            item.pos_x = enemy.pos_x;
+                            item.pos_y = enemy.pos_y;
+                            item.w_original = al_get_bitmap_width(pocao);
+                            item.h_original = al_get_bitmap_height(pocao);
+                            item.new_w = al_get_bitmap_width(pocao) / 6;
+                            item.new_h = al_get_bitmap_height(pocao) / 6;
+                            item.is_visible = false;
+                        }
+
+                        // Desativa ataque se sair da tela
+                        if (ataques[i].pos_x > 1280) {
+                            ataques[i].active = false;
                         }
                     }
                 }
 
-                // Movimento contínuo do inimigo
-                enemy.pos_x += enemy.vel_x;
-
-                // Fazer o inimigo reaparecer do outro lado da tela, se sair
-                if (enemy.pos_x + enemy.new_w < 0) { // Saiu pela esquerda
-                    enemy.pos_x = 1280; // Reaparece no lado direito
-                }
-            }
-
-            // Controle dos ataques
-            for (int i = 0; i < MAX_ATTACKS; i++) {
-                if (ataques[i].active) {
-                    ataques[i].pos_x += ataques[i].vel_x;
-
-                    // Colisão com o inimigo
-                    float distancia = sqrt(pow(enemy.pos_x - ataques[i].pos_x, 2) + pow(enemy.pos_y - ataques[i].pos_y, 2));
-                    if (distancia < 50 && enemy.is_visible) {
-                        enemy.is_visible = false;
-                        ataques[i].active = false;
-
-                        // Inicializar item na posição do inimigo derrotado
-                        item.pos_x = enemy.pos_x;
-                        item.pos_y = enemy.pos_y;
-                        item.w_original = al_get_bitmap_width(pocao);
-                        item.h_original = al_get_bitmap_height(pocao);
-                        item.new_w = al_get_bitmap_width(pocao) / 6;
-                        item.new_h = al_get_bitmap_height(pocao) / 6;
-                        item.is_visible = false;
-                    }
-
-                    // Desativa ataque se sair da tela
-                    if (ataques[i].pos_x > 1280) {
-                        ataques[i].active = false;
+                // Atualiza posição do inimigo
+                if (enemy.is_visible) {
+                    enemy.pos_x += enemy.vel_x;
+                    if (enemy.pos_x < 0) {
+                        enemy.pos_x = 1280;
                     }
                 }
-            }
 
-            // Atualiza posição do inimigo
-            if (enemy.is_visible) {
-                enemy.pos_x += enemy.vel_x;
-                if (enemy.pos_x < 0) {
-                    enemy.pos_x = 1280;
+                // Renderização
+                al_clear_to_color(al_map_rgb(105, 111, 255));
+
+                // Escolha da imagem a partir da direção
+                ALLEGRO_BITMAP* personagem_img;
+
+                if (personagem.direcao == 1) {
+                    personagem_img = bruxa_right;
                 }
-            }
-
-            // Renderização
-            al_clear_to_color(al_map_rgb(105, 111, 255));
-
-            // Escolha da imagem a partir da direção
-            ALLEGRO_BITMAP* personagem_img;
-
-            if (personagem.direcao == 1) {
-                personagem_img = bruxa_right;
-            }
-            else {
-                personagem_img = bruxa_left;
-            }
-
-            al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
-
-            for (int i = 0; i < MAX_ATTACKS; i++) {
-                if (ataques[i].active) {
-                    al_draw_scaled_bitmap(ataques[i].img, 0, 0, al_get_bitmap_width(ataques[i].img), al_get_bitmap_height(ataques[i].img), ataques[i].pos_x, ataques[i].pos_y, ataques[i].w, ataques[i].h, 0);
+                else {
+                    personagem_img = bruxa_left;
                 }
+
+                al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
+
+                for (int i = 0; i < MAX_ATTACKS; i++) {
+                    if (ataques[i].active) {
+                        al_draw_scaled_bitmap(ataques[i].img, 0, 0, al_get_bitmap_width(ataques[i].img), al_get_bitmap_height(ataques[i].img), ataques[i].pos_x, ataques[i].pos_y, ataques[i].w, ataques[i].h, 0);
+                    }
+                }
+
+                if (enemy.is_visible) {
+                    al_draw_scaled_bitmap(cobra, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
+                }
+
+                // Desenhando os blocos
+                if (bloco) {
+                    int qtd_blocos = 11;
+                    int espaco = 0;
+
+                    draw_ground(bloco, &ground, qtd_blocos, espaco);
+                }
+
+                if (coracao) {
+                    int qtd_coracao = 3;
+                    int espaco = 2;
+
+                    draw_life(coracao, &vidas, numero_de_vidas, espaco);
+                }
+
+                // Desenha item
+                if (!item.is_visible) {
+                    al_draw_scaled_bitmap(pocao, 0, 0, item.w_original, item.h_original, item.pos_x, item.pos_y, item.new_w, item.new_h, 0);
+                }
+
+                al_flip_display();
             }
-
-            if (enemy.is_visible) {
-                al_draw_scaled_bitmap(cobra, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
-            }
-
-            // Desenhando os blocos
-            if (bloco) {
-                int qtd_blocos = 11;
-                int espaco = 0;
-
-                draw_ground(bloco, &ground, qtd_blocos, espaco);
-            }
-
-            if (coracao) {
-                int qtd_coracao = 3;
-                int espaco = 2;
-
-                draw_life(coracao, &vidas, numero_de_vidas, espaco);
-            }
-
-            // Desenha item
-            if (!item.is_visible) {
-                al_draw_scaled_bitmap(pocao, 0, 0, item.w_original, item.h_original, item.pos_x, item.pos_y, item.new_w, item.new_h, 0);
-            }
-
-            al_flip_display();
         }
+
 
         // Controles de teclado
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
