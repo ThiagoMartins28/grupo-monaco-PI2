@@ -123,9 +123,10 @@ int main() {
     al_init_image_addon();
     al_init_primitives_addon();
     al_init_font_addon();
+    al_init_ttf_addon();
 
     enum GameState state = menu;
-    int btn_x = 550, btn_y = 200, btn_w = 200, btn_h = 80; // Botão Start Game
+    int btn_x = 550, btn_y = 250, btn_w = 200, btn_h = 60; // Botão Start Game
 
     bool running = true;
     bool is_jumping = false;
@@ -144,6 +145,19 @@ int main() {
 
     // Menu
     ALLEGRO_BITMAP* bg_2 = al_load_bitmap("./img/menu-2.jpg");
+
+    // Poções e cesto para o minigame I  
+    int potion_x = rand() % 1280;
+    int potion_y = 0;
+    int potion_speed = 5;
+    int basket_w = 100, basket_h = 30;
+    int basket_x, basket_y;
+    int score = 0;
+
+    ALLEGRO_BITMAP* potion = al_create_bitmap(50, 50);
+    al_set_target_bitmap(potion);
+    al_clear_to_color(al_map_rgb(0, 0, 255));
+    al_set_target_bitmap(al_get_backbuffer(display));
 
     // Personagem
     ALLEGRO_BITMAP* bruxa_right = al_load_bitmap("./img/bruxa-right.png");
@@ -188,8 +202,9 @@ int main() {
     item.pos_y = enemy.pos_y;
     item.is_visible = true;
 
-    // Fonte de texto
-    ALLEGRO_FONT* font = al_create_builtin_font();
+    // Fontes de texto
+    //ALLEGRO_FONT* font = al_create_builtin_font();
+    ALLEGRO_FONT* font = al_load_font("./Arial.ttf", 20, 0);
 
     // Chão
     Ground ground;
@@ -210,11 +225,36 @@ int main() {
             running = false;
         }
 
+        // Movimento de pulo do personagem
+        personagem.pos_x += personagem.vel_x;
+        if (is_jumping) {
+            personagem.pos_y += personagem.vel_y;
+            personagem.vel_y += gravity;
+            if (personagem.pos_y >= ground_y) {
+                personagem.pos_y = ground_y;
+                personagem.vel_y = 0;
+                is_jumping = false;
+            }
+        }
+
+        // Escolha da imagem a partir da direção
+        ALLEGRO_BITMAP* personagem_img;
+
+        if (personagem.direcao == 1) {
+            personagem_img = bruxa_right;
+        }
+        else {
+            personagem_img = bruxa_left;
+        }
+
         // Estado atual: menu
         if (state == menu) {
             al_clear_to_color(al_map_rgb(0, 0, 0));
             al_draw_bitmap(bg_2, 0, 0, 0);
+            al_draw_filled_rectangle(btn_x + 2, btn_y + 2, btn_x + btn_w + 2, btn_y + btn_h + 2, al_map_rgb(50, 50, 50));
             al_draw_filled_rectangle(btn_x, btn_y, btn_x + btn_w, btn_y + btn_h, al_map_rgb(162, 40, 206));
+            al_draw_text(font, al_map_rgb(255, 255, 255), btn_x + btn_w / 2, btn_y + btn_h / 4, ALLEGRO_ALIGN_CENTRE, "Start Game");
+            al_draw_text(font, al_map_rgb(0, 0, 0), btn_x + btn_w / 2 + 2, btn_y + btn_h / 4 + 2, ALLEGRO_ALIGN_CENTRE, "Start Game");
             al_draw_text(font, al_map_rgb(255, 255, 255), btn_x + btn_w / 2, btn_y + btn_h / 4, ALLEGRO_ALIGN_CENTRE, "Start Game");
             al_flip_display();
 
@@ -229,18 +269,55 @@ int main() {
         // Estado atual: primeira fase do jogo
         else if (state == game) {
             if (event.type == ALLEGRO_EVENT_TIMER) {
-                // Movimento de pulo do personagem
                 personagem.pos_x += personagem.vel_x;
-                if (is_jumping) {
-                    personagem.pos_y += personagem.vel_y;
-                    personagem.vel_y += gravity;
-                    if (personagem.pos_y >= ground_y) {
-                        personagem.pos_y = ground_y;
-                        personagem.vel_y = 0;
-                        is_jumping = false;
-                    }
+
+                // Atualiza a posição do cesto com a bruxa
+                basket_x = personagem.pos_x + (personagem.new_w / 2) - (basket_w / 2); // Centralizado horizontalmente em relação à bruxa
+                basket_y = personagem.pos_y - basket_h; // Colocado em cima da cabeça da bruxa
+
+                // Movimento da poção
+                potion_y += potion_speed;
+                if (potion_y > 720) {
+                    potion_x = rand() % 1280;
+                    potion_y = 0;
                 }
 
+                // Verifica colisão entre cesto e poção
+                if (potion_x + 50 > basket_x && potion_x < basket_x + basket_w &&
+                    potion_y + 50 > basket_y && potion_y < basket_y + basket_h) {
+                    score++;
+                    potion_x = rand() % 1280;
+                    potion_y = 0;
+                }
+
+                // Verifica se a bruxa chegou ao fim da tela
+                if (personagem.pos_x + personagem.new_w > 1280) {
+                    state = next;
+                }
+
+                // Desenha o cenário do minigame I
+                al_clear_to_color(al_map_rgb(200, 100, 100));
+
+                // Desenhando os blocos
+                if (bloco) {
+                    int qtd_blocos = 11;
+                    int espaco = 0;
+
+                    draw_ground(bloco, &ground, qtd_blocos, espaco);
+                }
+
+                al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
+                al_draw_filled_rectangle(basket_x, basket_y, basket_x + basket_w, basket_y + basket_h, al_map_rgb(0, 255, 0));
+                al_draw_bitmap(potion, potion_x, potion_y, 0);
+                al_draw_textf(font, al_map_rgb(255, 255, 255), 20, 20, 0, "Score: %d", score);
+                al_flip_display();
+            }
+        }
+
+        // Estado atual: segunda fase do jogo
+        else if (state == next) {
+            if (event.type == ALLEGRO_EVENT_TIMER) {
+                
                 // Colisão
                 if (enemy.is_visible) {
 
@@ -265,7 +342,7 @@ int main() {
                         }
                     }
 
-                    // Movimento contínuo do inimigo
+                    // Movimento do inimigo
                     enemy.pos_x += enemy.vel_x;
 
                     // Fazer o inimigo reaparecer do outro lado da tela, se sair
@@ -313,24 +390,17 @@ int main() {
                 // Renderização
                 al_clear_to_color(al_map_rgb(105, 111, 255));
 
-                // Escolha da imagem a partir da direção
-                ALLEGRO_BITMAP* personagem_img;
-
-                if (personagem.direcao == 1) {
-                    personagem_img = bruxa_right;
-                }
-                else {
-                    personagem_img = bruxa_left;
-                }
-
+                // Desenhando personagem
                 al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
 
+                // Desenhando ataque
                 for (int i = 0; i < MAX_ATTACKS; i++) {
                     if (ataques[i].active) {
                         al_draw_scaled_bitmap(ataques[i].img, 0, 0, al_get_bitmap_width(ataques[i].img), al_get_bitmap_height(ataques[i].img), ataques[i].pos_x, ataques[i].pos_y, ataques[i].w, ataques[i].h, 0);
                     }
                 }
 
+                // Desenhando inimigo
                 if (enemy.is_visible) {
                     al_draw_scaled_bitmap(cobra, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
                 }
@@ -404,6 +474,7 @@ int main() {
             }
         }
 
+        // Controlo de movimento
         if (event.type == ALLEGRO_EVENT_KEY_UP) {
             switch (event.keyboard.keycode) {
             case ALLEGRO_KEY_RIGHT:
@@ -425,6 +496,7 @@ int main() {
     al_destroy_bitmap(bloco);
     al_destroy_bitmap(coracao);
     al_destroy_font(font);
+    //al_destroy_font(fonte);
     al_destroy_bitmap(pocao);
 
     return 0;
