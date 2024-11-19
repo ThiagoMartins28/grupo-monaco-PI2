@@ -8,6 +8,7 @@
 #define MAX_ATTACKS 5 // Número máximo de ataques
 double ultimo_tempo_colisao = 0;
 double colisoes = 0.5;
+#define NUM_POTIONS 7
 
 enum GameState {
     menu,
@@ -74,6 +75,19 @@ typedef struct {
     int pos_y;
     bool is_visible;
 } Item;
+
+typedef struct {
+    int potion_x;
+    int potion_y;
+    int potion_speed;
+    int basket_w, basket_h;
+    int basket_x, basket_y;
+    int score;
+    int potion_atual;
+    float potion_w;
+    float potion_h;
+    float escala;
+} Potion;
 
 // Carrega imagens do chão
 ALLEGRO_BITMAP* load_ground(int caminho[], Ground* ground, int pos_x, int pos_y, float escala) {
@@ -147,17 +161,36 @@ int main() {
     ALLEGRO_BITMAP* bg_2 = al_load_bitmap("./img/menu-2.jpg");
 
     // Poções e cesto para o minigame I  
-    int potion_x = rand() % 1280;
-    int potion_y = 0;
-    int potion_speed = 5;
-    int basket_w = 100, basket_h = 30;
-    int basket_x, basket_y;
-    int score = 0;
+    Potion potion;
+    potion.potion_x = rand() % 1280;
+    potion.potion_y = 0;
+    potion.potion_speed = 5;
+    potion.basket_w = 100, potion.basket_h = 30;
+    //basket_x, basket_y;
+    potion.score = 0;
 
-    ALLEGRO_BITMAP* potion = al_create_bitmap(50, 50);
+    ALLEGRO_BITMAP* potion_images[NUM_POTIONS];
+    potion.potion_atual = 0;
+    potion.potion_w = 0;
+    potion.potion_h = 0;
+    potion.escala = 0.5;
+    const char* potion_files[NUM_POTIONS] = { "./img/pocoes/pocao1.png", "./img/pocoes/pocao2.png", "./img/pocoes/pocao3.png",
+                                              "./img/pocoes/pocao4.png", "./img/pocoes/pocao5.png", "./img/pocoes/pocao6.png",
+                                              "./img/pocoes/pocao7.png"};
+    for (int i = 0; i < NUM_POTIONS; i++) {
+        potion_images[i] = al_load_bitmap(potion_files[i]);
+
+        float original_w = al_get_bitmap_width(potion_images[i]);
+        float original_h = al_get_bitmap_height(potion_images[i]);
+
+        potion.potion_w = original_w * potion.escala;
+        potion.potion_h = original_h * potion.escala;
+    }
+
+    /*ALLEGRO_BITMAP* potion = al_create_bitmap(50, 50);
     al_set_target_bitmap(potion);
     al_clear_to_color(al_map_rgb(0, 0, 255));
-    al_set_target_bitmap(al_get_backbuffer(display));
+    al_set_target_bitmap(al_get_backbuffer(display));*/
 
     // Personagem
     ALLEGRO_BITMAP* bruxa_right = al_load_bitmap("./img/bruxa-right.png");
@@ -272,22 +305,24 @@ int main() {
                 personagem.pos_x += personagem.vel_x;
 
                 // Atualiza a posição do cesto com a bruxa
-                basket_x = personagem.pos_x + (personagem.new_w / 2) - (basket_w / 2); // Centralizado horizontalmente em relação à bruxa
-                basket_y = personagem.pos_y - basket_h; // Colocado em cima da cabeça da bruxa
+                potion.basket_x = personagem.pos_x + (personagem.new_w / 2) - (potion.basket_w / 2); // Centralizado horizontalmente em relação à bruxa
+                potion.basket_y = personagem.pos_y - potion.basket_h; // Colocado em cima da cabeça da bruxa
 
                 // Movimento da poção
-                potion_y += potion_speed;
-                if (potion_y > 720) {
-                    potion_x = rand() % 1280;
-                    potion_y = 0;
+                potion.potion_y += potion.potion_speed;
+                if (potion.potion_y > 720) {
+                    potion.potion_x = rand() % 1280 - potion.potion_w;
+                    potion.potion_y = 0;
+                    potion.potion_atual = rand() % NUM_POTIONS;
                 }
 
                 // Verifica colisão entre cesto e poção
-                if (potion_x + 50 > basket_x && potion_x < basket_x + basket_w &&
-                    potion_y + 50 > basket_y && potion_y < basket_y + basket_h) {
-                    score++;
-                    potion_x = rand() % 1280;
-                    potion_y = 0;
+                if (potion.potion_x + 50 > potion.basket_x && potion.potion_x < potion.basket_x + potion.basket_w &&
+                    potion.potion_y + 50 > potion.basket_y && potion.potion_y < potion.basket_y + potion.basket_h) {
+                    potion.score++;
+                    potion.potion_x = rand() % 1280 - potion.potion_w;
+                    potion.potion_y = 0;
+                    potion.potion_atual = rand() % NUM_POTIONS;
                 }
 
                 // Verifica se a bruxa chegou ao fim da tela
@@ -307,9 +342,13 @@ int main() {
                 }
 
                 al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
-                al_draw_filled_rectangle(basket_x, basket_y, basket_x + basket_w, basket_y + basket_h, al_map_rgb(0, 255, 0));
-                al_draw_bitmap(potion, potion_x, potion_y, 0);
-                al_draw_textf(font, al_map_rgb(255, 255, 255), 20, 20, 0, "Score: %d", score);
+                al_draw_filled_rectangle(potion.basket_x, potion.basket_y, potion.basket_x + potion.basket_w, potion.basket_y + potion.basket_h, al_map_rgb(0, 255, 0));
+                al_draw_scaled_bitmap(potion_images[potion.potion_atual], 
+                                      0, 0, al_get_bitmap_width(potion_images[potion.potion_atual]), 
+                                      al_get_bitmap_height(potion_images[potion.potion_atual]),
+                                      potion.potion_x, potion.potion_y, 
+                                      potion.potion_w, potion.potion_h, 0);
+                al_draw_textf(font, al_map_rgb(255, 255, 255), 20, 20, 0, "Score: %d", potion.score);
                 al_flip_display();
             }
         }
@@ -496,8 +535,12 @@ int main() {
     al_destroy_bitmap(bloco);
     al_destroy_bitmap(coracao);
     al_destroy_font(font);
-    //al_destroy_font(fonte);
     al_destroy_bitmap(pocao);
+    for (int i = 0; i < NUM_POTIONS; i++) {
+        if (potion_images[i]) {
+            al_destroy_bitmap(potion_images[i]);
+        }
+    }
 
     return 0;
 }
