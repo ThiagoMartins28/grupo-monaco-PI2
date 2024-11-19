@@ -64,7 +64,7 @@ typedef struct {
     int new_h;
     int pos_x;
     int pos_y;
-} Ground;
+} Objeto;
 
 typedef struct {
     int w_original;
@@ -89,46 +89,74 @@ typedef struct {
     float escala;
 } Potion;
 
+typedef struct {
+    float button_x;
+    float button_y;
+    float button_width;
+    float button_height;
+    bool button_pressed;
+} Book_button;
+
 // Carrega imagens do chão
-ALLEGRO_BITMAP* load_ground(int caminho[], Ground* ground, int pos_x, int pos_y, float escala) {
+ALLEGRO_BITMAP* load_object(int caminho[], Objeto* objeto, int pos_x, int pos_y, float escala) {
     ALLEGRO_BITMAP* imagem = al_load_bitmap(caminho);
 
-    ground->w_original = al_get_bitmap_width(imagem);
-    ground->h_original = al_get_bitmap_height(imagem);
+    objeto->w_original = al_get_bitmap_width(imagem);
+    objeto->h_original = al_get_bitmap_height(imagem);
 
-    ground->new_w = ground->w_original * escala;
-    ground->new_h = ground->h_original * escala;
+    objeto->new_w = objeto->w_original * escala;
+    objeto->new_h = objeto->h_original * escala;
 
     // Posição
-    ground->pos_x = pos_x;
-    ground->pos_y = pos_y;
+    objeto->pos_x = pos_x;
+    objeto->pos_y = pos_y;
 
     return imagem;
 }
 
 // Desenha as imagens do chão no display
-void draw_ground(ALLEGRO_BITMAP* bloco, Ground* ground, int qtd, int espaco) {
+void draw_object(ALLEGRO_BITMAP* bloco, Objeto* objeto, int qtd, int espaco) {
 
     for (int i = 0; i < qtd; i++) {
-        int posicao_x = ground->pos_x + (ground->new_w + espaco) * i;
+        int posicao_x = objeto->pos_x + (objeto->new_w + espaco) * i;
 
         al_draw_scaled_bitmap(bloco,
-            0, 0, ground->w_original, ground->h_original,
-            posicao_x, ground->pos_y, ground->new_w, ground->new_h,
+            0, 0, objeto->w_original, objeto->h_original,
+            posicao_x, objeto->pos_y, objeto->new_w, objeto->new_h,
             0);
     }
 }
 
-void draw_life(ALLEGRO_BITMAP* bloco, Ground* vida, int vidas_restantes, int espaco) {
-    for (int i = 0; i < vidas_restantes; i++) { // Desenhar apenas até o número de vidas restantes
-        int posicao_x = vida->pos_x + (vida->new_w + espaco) * i;
+void verificar_colisao_e_movimento(Personagem* personagem, Enemy* enemy, double* ultimo_tempo_colisao, int* numero_de_vidas, bool* running, double colisoes) {
+    if (enemy->is_visible) {
 
-        al_draw_scaled_bitmap(bloco,
-            0, 0, vida->w_original, vida->h_original,
-            posicao_x, vida->pos_y, vida->new_w, vida->new_h,
-            0);
+        bool colidiu = personagem->pos_x < enemy->pos_x + enemy->new_w &&
+            personagem->pos_x + personagem->new_w > enemy->pos_x &&
+            personagem->pos_y < enemy->pos_y + enemy->new_h &&
+            personagem->pos_y + personagem->new_h > enemy->pos_y;
+
+        if (colidiu) {
+            double tempo_atual = al_get_time();
+
+            if (tempo_atual - *ultimo_tempo_colisao >= colisoes) {
+                (*numero_de_vidas)--;
+                *ultimo_tempo_colisao = tempo_atual;
+
+                if (*numero_de_vidas <= 0) {
+                    *running = false;
+                    printf("Game over!\n");
+                }
+            }
+        }
+
+        enemy->pos_x += enemy->vel_x;
+
+        if (enemy->pos_x + enemy->new_w < 0) { 
+            enemy->pos_x = 1280; 
+        }
     }
 }
+
 
 int main() {
     al_init();
@@ -140,7 +168,6 @@ int main() {
     al_init_ttf_addon();
 
     enum GameState state = menu;
-    int btn_x = 550, btn_y = 250, btn_w = 200, btn_h = 60; // Botão Start Game
 
     bool running = true;
     bool is_jumping = false;
@@ -159,6 +186,7 @@ int main() {
 
     // Menu
     ALLEGRO_BITMAP* bg_2 = al_load_bitmap("./img/menu-2.jpg");
+    int btn_x = 550, btn_y = 250, btn_w = 200, btn_h = 60; // Botão Start Game
 
     // Poções e cesto para o minigame I  
     Potion potion;
@@ -209,16 +237,27 @@ int main() {
 
     // Vidas
     int numero_de_vidas = 3;
-    Ground vidas; // !ALERTA DE GAMBIARRA!: usando a struct de Ground pra desenhar as imagens de vida
-    ALLEGRO_BITMAP* coracao = load_ground("./img/coracao.png", &vidas, 5, 20, 0.20);
+    Objeto vidas; 
+    ALLEGRO_BITMAP* coracao = load_object("./img/coracao.png", &vidas, 5, 20, 0.20);
+
+    // Book
+    Objeto inventario; 
+    ALLEGRO_BITMAP* book = load_object("./img/book.png", &inventario, 1200, 20, 0.20);
+    Book_button book_button;
+    book_button.button_x = 1200;  
+    book_button.button_y = 20;  
+    book_button.button_width = 60; 
+    book_button.button_height = 60;
+    book_button.button_pressed = false;
 
     // Inimigo
-    ALLEGRO_BITMAP* cobra = al_load_bitmap("./img/gelo.png");
+    ALLEGRO_BITMAP* inimigo_ghost = al_load_bitmap("./img/ghost.png");
+    ALLEGRO_BITMAP* inimigo_gelo = al_load_bitmap("./img/gelo.png");
     Enemy enemy;
-    enemy.w_original = al_get_bitmap_width(cobra);
-    enemy.h_original = al_get_bitmap_height(cobra);
-    enemy.new_w = al_get_bitmap_width(cobra) / 4.5;
-    enemy.new_h = al_get_bitmap_height(cobra) / 4.5;
+    enemy.w_original = al_get_bitmap_width(inimigo_ghost);
+    enemy.h_original = al_get_bitmap_height(inimigo_ghost);
+    enemy.new_w = al_get_bitmap_width(inimigo_ghost) / 4.5;
+    enemy.new_h = al_get_bitmap_height(inimigo_ghost) / 4.5;
     enemy.pos_x = 1000;
     enemy.pos_y = 540;
     enemy.vel_x = -2;
@@ -240,8 +279,8 @@ int main() {
     ALLEGRO_FONT* font = al_load_font("./Arial.ttf", 20, 0);
 
     // Chão
-    Ground ground;
-    ALLEGRO_BITMAP* bloco = load_ground("./img/bloco.png", &ground, 0, 592, 0.33);
+    Objeto ground;
+    ALLEGRO_BITMAP* bloco = load_object("./img/bloco.png", &ground, 0, 592, 0.33);
 
     // Ataques
     ALLEGRO_BITMAP* attack_img = al_load_bitmap("./img/fogo.png");
@@ -256,6 +295,13 @@ int main() {
 
         if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
             running = false;
+        }
+        else if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN) {
+            // Verifica se o clique está dentro da área do botão invisível.
+            if (event.mouse.x >= book_button.button_x && event.mouse.x <= book_button.button_x + book_button.button_width &&
+                event.mouse.y >= book_button.button_y && event.mouse.y <= book_button.button_y + book_button.button_height) {
+                book_button.button_pressed = true;
+            }
         }
 
         // Movimento de pulo do personagem
@@ -286,7 +332,6 @@ int main() {
             al_draw_bitmap(bg_2, 0, 0, 0);
             al_draw_filled_rectangle(btn_x + 2, btn_y + 2, btn_x + btn_w + 2, btn_y + btn_h + 2, al_map_rgb(50, 50, 50));
             al_draw_filled_rectangle(btn_x, btn_y, btn_x + btn_w, btn_y + btn_h, al_map_rgb(162, 40, 206));
-            al_draw_text(font, al_map_rgb(255, 255, 255), btn_x + btn_w / 2, btn_y + btn_h / 4, ALLEGRO_ALIGN_CENTRE, "Start Game");
             al_draw_text(font, al_map_rgb(0, 0, 0), btn_x + btn_w / 2 + 2, btn_y + btn_h / 4 + 2, ALLEGRO_ALIGN_CENTRE, "Start Game");
             al_draw_text(font, al_map_rgb(255, 255, 255), btn_x + btn_w / 2, btn_y + btn_h / 4, ALLEGRO_ALIGN_CENTRE, "Start Game");
             al_flip_display();
@@ -299,101 +344,18 @@ int main() {
             }
         }
 
-        // Estado atual: primeira fase do jogo
+        // Estado atual: segunda fase do jogo
         else if (state == game) {
             if (event.type == ALLEGRO_EVENT_TIMER) {
-                personagem.pos_x += personagem.vel_x;
 
-                // Atualiza a posição do cesto com a bruxa
-                potion.basket_x = personagem.pos_x + (personagem.new_w / 2) - (potion.basket_w / 2); // Centralizado horizontalmente em relação à bruxa
-                potion.basket_y = personagem.pos_y - potion.basket_h; // Colocado em cima da cabeça da bruxa
-
-                // Movimento da poção
-                potion.potion_y += potion.potion_speed;
-                if (potion.potion_y > 720) {
-                    potion.potion_x = rand() % 1280 - potion.potion_w;
-                    potion.potion_y = 0;
-                    potion.potion_atual = rand() % NUM_POTIONS;
-                }
-
-                // Verifica colisão entre cesto e poção
-                if (potion.potion_x + 50 > potion.basket_x && potion.potion_x < potion.basket_x + potion.basket_w &&
-                    potion.potion_y + 50 > potion.basket_y && potion.potion_y < potion.basket_y + potion.basket_h) {
-                    potion.score++;
-                    potion.potion_x = rand() % 1280 - potion.potion_w;
-                    potion.potion_y = 0;
-                    potion.potion_atual = rand() % NUM_POTIONS;
-                }
-
-                // Verifica se a bruxa chegou ao fim da tela
-                if (personagem.pos_x + personagem.new_w > 1280) {
-                    state = next;
-                }
-
-                // Desenha o cenário do minigame I
-                al_clear_to_color(al_map_rgb(200, 100, 100));
-
-                // Desenhando os blocos
-                if (bloco) {
-                    int qtd_blocos = 11;
-                    int espaco = 0;
-
-                    draw_ground(bloco, &ground, qtd_blocos, espaco);
-                }
-
-                al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
-                al_draw_filled_rectangle(potion.basket_x, potion.basket_y, potion.basket_x + potion.basket_w, potion.basket_y + potion.basket_h, al_map_rgb(0, 255, 0));
-                al_draw_scaled_bitmap(potion_images[potion.potion_atual], 
-                                      0, 0, al_get_bitmap_width(potion_images[potion.potion_atual]), 
-                                      al_get_bitmap_height(potion_images[potion.potion_atual]),
-                                      potion.potion_x, potion.potion_y, 
-                                      potion.potion_w, potion.potion_h, 0);
-                al_draw_textf(font, al_map_rgb(255, 255, 255), 20, 20, 0, "Score: %d", potion.score);
-                al_flip_display();
-            }
-        }
-
-        // Estado atual: segunda fase do jogo
-        else if (state == next) {
-            if (event.type == ALLEGRO_EVENT_TIMER) {
-                
-                // Colisão
-                if (enemy.is_visible) {
-
-                    bool colidiu = personagem.pos_x < enemy.pos_x + enemy.new_w &&
-                        personagem.pos_x + personagem.new_w > enemy.pos_x &&
-                        personagem.pos_y < enemy.pos_y + enemy.new_h &&
-                        personagem.pos_y + personagem.new_h > enemy.pos_y;
-
-                    if (colidiu) {
-
-                        double tempo_atual = al_get_time();
-
-                        if (tempo_atual - ultimo_tempo_colisao >= colisoes) {
-                            numero_de_vidas--;
-                            ultimo_tempo_colisao = tempo_atual;
-
-                            // Se as vidas acabarem, acaba o jogo
-                            if (numero_de_vidas <= 0) {
-                                running = false;
-                                printf("Fim de jogo!");
-                            }
-                        }
-                    }
-
-                    // Movimento do inimigo
-                    enemy.pos_x += enemy.vel_x;
-
-                    // Fazer o inimigo reaparecer do outro lado da tela, se sair
-                    if (enemy.pos_x + enemy.new_w < 0) { // Saiu pela esquerda
-                        enemy.pos_x = 1280; // Reaparece no lado direito
-                    }
-                }
+                // Colisão com o inimigo
+                verificar_colisao_e_movimento(&personagem, &enemy, &ultimo_tempo_colisao, &numero_de_vidas, &running, colisoes);
 
                 // Controle dos ataques
                 for (int i = 0; i < MAX_ATTACKS; i++) {
                     if (ataques[i].active) {
                         ataques[i].pos_x += ataques[i].vel_x;
+
 
                         // Colisão com o inimigo
                         float distancia = sqrt(pow(enemy.pos_x - ataques[i].pos_x, 2) + pow(enemy.pos_y - ataques[i].pos_y, 2));
@@ -426,8 +388,21 @@ int main() {
                     }
                 }
 
+                // Verifica se a bruxa chegou ao fim da tela
+                if (personagem.pos_x + personagem.new_w > 1280) {
+                    state = next;
+                    personagem.pos_x = 0;
+                    personagem.pos_y = 500;
+                }
+
                 // Renderização
                 al_clear_to_color(al_map_rgb(105, 111, 255));
+            
+                // Book Botão 
+                // desenhar o contorno do botão
+                al_draw_rectangle(book_button.button_x, book_button.button_y,
+                    book_button.button_x + book_button.button_width, book_button.button_y + book_button.button_height,
+                    al_map_rgb(255, 0, 0), 2);
 
                 // Desenhando personagem
                 al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
@@ -441,22 +416,41 @@ int main() {
 
                 // Desenhando inimigo
                 if (enemy.is_visible) {
-                    al_draw_scaled_bitmap(cobra, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
+                    al_draw_scaled_bitmap(inimigo_gelo, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
                 }
 
                 // Desenhando os blocos
                 if (bloco) {
-                    int qtd_blocos = 11;
+                    int qtd_bloco = 11;
                     int espaco = 0;
 
-                    draw_ground(bloco, &ground, qtd_blocos, espaco);
+                    draw_object(bloco, &ground, qtd_bloco, espaco);
                 }
 
                 if (coracao) {
-                    int qtd_coracao = 3;
                     int espaco = 2;
 
-                    draw_life(coracao, &vidas, numero_de_vidas, espaco);
+                    draw_object(coracao, &vidas, numero_de_vidas, espaco);
+                }
+
+                if (book) {
+                    int qtd_book = 1;
+                    int espaco = 2;
+
+                    draw_object(book, &inventario, qtd_book, espaco);
+                }
+
+                if (!item.is_visible) {
+                    bool coletou_item = personagem.pos_x < item.pos_x + item.new_w &&
+                        personagem.pos_x + personagem.new_w > item.pos_x &&
+                        personagem.pos_y < item.pos_y + item.new_h &&
+                        personagem.pos_y + personagem.new_h > item.pos_y;
+
+                    if (coletou_item) {
+                        potion.score += 1; // Incrementa o placar
+                        item.is_visible = true; // Oculta o item após a coleta
+                        printf("Item coletado! Score: %d\n", potion.score);
+                    }
                 }
 
                 // Desenha item
@@ -464,10 +458,89 @@ int main() {
                     al_draw_scaled_bitmap(pocao, 0, 0, item.w_original, item.h_original, item.pos_x, item.pos_y, item.new_w, item.new_h, 0);
                 }
 
+                al_draw_textf(font, al_map_rgb(255, 255, 255), 640, 20, 0, "Potions: %d", potion.score);
+
                 al_flip_display();
             }
         }
 
+        // Estado atual: primeira fase do jogo
+        else if (state == next) {
+            if (event.type == ALLEGRO_EVENT_TIMER) {
+                personagem.pos_x += personagem.vel_x;
+
+                // Atualiza a posição do cesto com a bruxa
+                potion.basket_x = personagem.pos_x + (personagem.new_w / 2) - (potion.basket_w / 2); // Centralizado horizontalmente em relação à bruxa
+                potion.basket_y = personagem.pos_y - potion.basket_h; // Colocado em cima da cabeça da bruxa
+
+                // Movimento da poção
+                potion.potion_y += potion.potion_speed;
+                if (potion.potion_y > 720) {
+                    potion.potion_x = rand() % 1280 - potion.potion_w;
+                    potion.potion_y = 0;
+                    potion.potion_atual = rand() % NUM_POTIONS;
+                }
+
+                // Verifica colisão entre cesto e poção
+                if (potion.potion_x + 50 > potion.basket_x && potion.potion_x < potion.basket_x + potion.basket_w &&
+                    potion.potion_y + 50 > potion.basket_y && potion.potion_y < potion.basket_y + potion.basket_h) {
+                    potion.score++;
+                    potion.potion_x = rand() % 1280 - potion.potion_w;
+                    potion.potion_y = 0;
+                    potion.potion_atual = rand() % NUM_POTIONS;
+                }
+
+                // Colisão com inimigo
+                verificar_colisao_e_movimento(&personagem, &enemy, &ultimo_tempo_colisao, &numero_de_vidas, &running, colisoes);
+
+                // Atualiza posição do inimigo
+                if (enemy.is_visible) {
+                    enemy.pos_x += enemy.vel_x;
+                    if (enemy.pos_x < 0) {
+                        enemy.pos_x = 1280;
+                    }
+                }
+
+                // Desenha o cenário do minigame I
+                al_clear_to_color(al_map_rgb(200, 100, 100));
+
+                // Desenhando os blocos
+                if (bloco) {
+                    int qtd_blocos = 11;
+                    int espaco = 0;
+
+                    draw_object(bloco, &ground, qtd_blocos, espaco);
+                }
+
+                if (coracao) {
+                    int espaco = 2;
+
+                    draw_object(coracao, &vidas, numero_de_vidas, espaco);
+                }
+
+                if (book) {
+                    int qtd_book = 1;
+                    int espaco = 2;
+
+                    draw_object(book, &inventario, qtd_book, espaco);
+                }
+
+                // Desenhando inimigo
+                if (enemy.is_visible) {
+                    al_draw_scaled_bitmap(inimigo_ghost, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
+                }
+
+                al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
+                al_draw_filled_rectangle(potion.basket_x, potion.basket_y, potion.basket_x + potion.basket_w, potion.basket_y + potion.basket_h, al_map_rgb(200, 100, 100)); // Cesto para pegar as poções
+                al_draw_scaled_bitmap(potion_images[potion.potion_atual], 
+                                      0, 0, al_get_bitmap_width(potion_images[potion.potion_atual]), 
+                                      al_get_bitmap_height(potion_images[potion.potion_atual]),
+                                      potion.potion_x, potion.potion_y, 
+                                      potion.potion_w, potion.potion_h, 0);
+                al_draw_textf(font, al_map_rgb(255, 255, 255), 640, 20, 0, "Potions: %d", potion.score);
+                al_flip_display();
+            }
+        }
 
         // Controles de teclado
         if (event.type == ALLEGRO_EVENT_KEY_DOWN) {
@@ -505,7 +578,7 @@ int main() {
                         ataques[i].w = al_get_bitmap_width(ataques[i].img) / 6;
                         ataques[i].h = al_get_bitmap_height(ataques[i].img) / 6;
 
-                        ataques[i].vel_x = 5 * personagem.direcao;
+                        ataques[i].vel_x = 10 * personagem.direcao;
                         break;
                     }
                 }
@@ -531,9 +604,11 @@ int main() {
     al_destroy_bitmap(bruxa_right);
     al_destroy_bitmap(bruxa_left);
     al_destroy_bitmap(attack_img);
-    al_destroy_bitmap(cobra);
+    al_destroy_bitmap(inimigo_gelo);
+    al_destroy_bitmap(inimigo_ghost);
     al_destroy_bitmap(bloco);
     al_destroy_bitmap(coracao);
+    al_destroy_bitmap(book);
     al_destroy_font(font);
     al_destroy_bitmap(pocao);
     for (int i = 0; i < NUM_POTIONS; i++) {
