@@ -157,7 +157,6 @@ void verificar_colisao_e_movimento(Personagem* personagem, Enemy* enemy, double*
     }
 }
 
-
 int main() {
     al_init();
     al_install_keyboard();
@@ -488,6 +487,11 @@ int main() {
                     potion.potion_x = rand() % 1280 - potion.potion_w;
                     potion.potion_y = 0;
                     potion.potion_atual = rand() % NUM_POTIONS;
+                }
+
+                // Acaba quando score chega a 6
+                if (potion.score >= 6) {
+                    running = false;
                 }
 
                 // Colisão com inimigo
