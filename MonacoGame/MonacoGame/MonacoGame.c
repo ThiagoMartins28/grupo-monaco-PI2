@@ -59,7 +59,8 @@ int main() {
     int basket_x, basket_y;
     int score = 0;
 
-    ALLEGRO_BITMAP* potion = al_create_bitmap(50, 50);
+    //ALLEGRO_BITMAP* potion = al_create_bitmap(50, 50);
+    ALLEGRO_BITMAP* potion = al_load_bitmap("./img/pocao.png");
     al_set_target_bitmap(potion);
     al_clear_to_color(al_map_rgb(0, 0, 255));
     al_set_target_bitmap(al_get_backbuffer(display));
@@ -187,7 +188,9 @@ int main() {
                 al_clear_to_color(al_map_rgb(200, 100, 100));
                 al_draw_scaled_bitmap(pg, 0, 0, w_original, h_original, pos_x, pos_y, new_w, new_h, 0);
                 al_draw_filled_rectangle(basket_x, basket_y, basket_x + basket_w, basket_y + basket_h, al_map_rgb(0, 255, 0));
-                al_draw_bitmap(potion, potion_x, potion_y, 0);
+                //al_draw_bitmap(potion, potion_x, potion_y, 0);
+                al_draw_scaled_bitmap(potion, 0, 0, al_get_bitmap_width(potion), al_get_bitmap_height(potion),
+                                      potion_x, potion_y, 50, 50, 0);
                 al_draw_textf(font, al_map_rgb(255, 255, 255), 10, 10, 0, "Score: %d", score);
                 al_flip_display();
             }
