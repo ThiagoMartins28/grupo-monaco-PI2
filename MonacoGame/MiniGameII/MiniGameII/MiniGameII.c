@@ -104,6 +104,13 @@ typedef struct {
     int potion_type;
 }DroppedItem;
 
+typedef struct {
+    int x, y;      
+    int w, h; 
+    bool is_visible; 
+    ALLEGRO_BITMAP* imagem_mistura;
+} Mistura;
+
 // Carrega imagens do chão
 ALLEGRO_BITMAP* load_object(int caminho[], Objeto* objeto, int pos_x, int pos_y, float escala) {
     ALLEGRO_BITMAP* imagem = al_load_bitmap(caminho);
@@ -164,6 +171,20 @@ void verificar_colisao_e_movimento(Personagem* personagem, Enemy* enemy, double*
     }
 }
 
+// Misturas
+bool combina_2(int a, int b, int x, int y) {
+    return (a == x && b == y) || (a == y && b == x);
+}
+
+bool combina_3(int a, int b, int c, int x, int y, int z) {
+    return (a == x && b == y && c == z) ||
+        (a == x && b == z && c == y) ||
+        (a == y && b == x && c == z) ||
+        (a == y && b == z && c == x) ||
+        (a == z && b == x && c == y) ||
+        (a == z && b == y && c == x);
+}
+
 int main() {
     al_init();
     al_install_keyboard();
@@ -202,6 +223,7 @@ int main() {
     potion.basket_w = 100, potion.basket_h = 30;
     //basket_x, basket_y;
     potion.score = 0;
+    bool potion_is_dropped = false;
 
     ALLEGRO_BITMAP* potion_images[NUM_POTIONS];
     potion.potion_atual = 0;
@@ -221,11 +243,26 @@ int main() {
         potion.potion_h = original_h * potion.escala;
     }
 
+    // Misturas
+    /*ALLEGRO_BITMAP* mistura_amarela = NULL;
+    ALLEGRO_BITMAP* mistura_roxo = NULL;
+    ALLEGRO_BITMAP* mistura_verde = NULL;*/
+    #define MAX_MISTURA 3
+    Mistura mistura[MAX_MISTURA];
+    int total_mistura = 0;
+    for (int i = 0; i < MAX_MISTURA; i++) {
+        mistura[i].x = 600;
+        mistura[i].y = 400;
+        mistura[i].w = 60;
+        mistura[i].h = 90;
+        mistura[i].is_visible = false;
+        mistura[i].imagem_mistura = NULL;
+    }
+ 
     // Coleta e drop de poções
     #define MAX_ITEMS 10
     DroppedItem dropped_items[MAX_ITEMS]; // Array para armazenar os itens
     int dropped_item_count = 0; // Contador de itens droppados
-
 
     // Personagem
     ALLEGRO_BITMAP* bruxa_right = al_load_bitmap("./img/bruxa-right.png");
@@ -260,7 +297,9 @@ int main() {
 
     // Caldeirão
     Objeto caldeirao;
-    ALLEGRO_BITMAP* caldao = load_object("./img/caldeirao.png", &caldeirao, 1100, 510, 0.25);
+    ALLEGRO_BITMAP* caldao = load_object("./img/caldeirao.png", &caldeirao, 600, 510, 0.25);
+    int drop_zone = 600;
+    int drop_zone_w = 200;
 
     // Inimigo
     ALLEGRO_BITMAP* inimigo_ghost = al_load_bitmap("./img/ghost.png");
@@ -287,7 +326,6 @@ int main() {
     item.is_visible = true;
 
     // Fontes de texto
-    //ALLEGRO_FONT* font = al_create_builtin_font();
     ALLEGRO_FONT* font = al_load_font("./Arial.ttf", 20, 0);
 
     // Chão
@@ -471,7 +509,6 @@ int main() {
                 }
 
                 al_draw_textf(font, al_map_rgb(255, 255, 255), 640, 20, 0, "Potions: %d", potion.score);
-
                 al_flip_display();
             }
         }
@@ -509,11 +546,6 @@ int main() {
                     potion.potion_atual = rand() % NUM_POTIONS;
                 }
 
-                //// Acaba quando score chega a 6
-                //if (potion.score >= 6) {
-                //    running = false;
-                //}
-
                 // Colisão com inimigo
                 verificar_colisao_e_movimento(&personagem, &enemy, &ultimo_tempo_colisao, &numero_de_vidas, &running, colisoes);
 
@@ -536,6 +568,7 @@ int main() {
                     draw_object(bloco, &ground, qtd_blocos, espaco);
                 }
 
+                // Desenha vidas
                 if (coracao) {
                     int espaco = 2;
 
@@ -549,6 +582,7 @@ int main() {
                     draw_object(book, &inventario, qtd_book, espaco);
                 }
 
+                // Desenha caldeirão
                 if (caldao) {
                     int qtd_caldao = 1;
                     int espaco = 2;
@@ -556,9 +590,11 @@ int main() {
                     draw_object(caldao, &caldeirao, qtd_caldao, espaco);
                 }
 
+                // Verifica se a bruxa está na zona de drop
+                bool is_in_drop_zone = (personagem.pos_x >= drop_zone && personagem.pos_x <= drop_zone + drop_zone_w);
+
                 // Desenha poção coletada na tela
                 if (personagem.potion_held != -1) {
-                    //al_draw_bitmap(potion_images[personagem.potion_held], 100, 50, 0);
                     int width = 80;  
                     int height = 80; 
 
@@ -594,8 +630,105 @@ int main() {
                     );
                 }
 
+                // Verifica se as poções estão no caldeirão e desenha a mistura
+                if (is_in_drop_zone && potion_is_dropped) {
+                    if (dropped_item_count >= 3) {
+                        int index1 = dropped_items[dropped_item_count - 3].potion_type;
+                        int index2 = dropped_items[dropped_item_count - 2].potion_type;
+                        int index3 = dropped_items[dropped_item_count - 1].potion_type;
+                       
+                        if (total_mistura < MAX_MISTURA) {
+                            Mistura nova_mistura;
+                            nova_mistura.is_visible = true;
+                            nova_mistura.x = 600;
+                            nova_mistura.y = 400;
+                            nova_mistura.w = 80;
+                            nova_mistura.h = 80;
 
-                // Desenhando inimigo
+                            // Misturando
+                            if (combina_2(index1, index2, 5, 6)) {
+                                nova_mistura.imagem_mistura = al_load_bitmap("./img/PNG/amarelo.png");
+                                nova_mistura.is_visible = true;
+                            }
+                            else if (combina_2(index1, index2, 0, 2)) {
+                                nova_mistura.imagem_mistura = al_load_bitmap("./img/PNG/roxo.png");
+                                nova_mistura.is_visible = true;
+                            }
+                            else if (combina_3(index1, index2, index3, 1, 3, 5)) {
+                                nova_mistura.imagem_mistura = al_load_bitmap("./img/PNG/verde.png");
+                                nova_mistura.is_visible = true;
+                            }
+
+                            mistura[total_mistura] = nova_mistura;  // Adiciona a nova mistura
+                            total_mistura++;
+
+                            dropped_item_count = 0;
+                            potion.score--;
+                            potion_is_dropped = false;
+                        }
+                    }
+                }
+                
+                // Score após drop de poção
+                if (potion_is_dropped == true) {
+                    potion.score--;
+                    potion_is_dropped = false;
+                }
+
+                // Desenha mistura feita com as poções
+                for (int i = 0; i < total_mistura; i++) {
+                    if (mistura[i].is_visible) {
+                        al_draw_scaled_bitmap(
+                            mistura[i].imagem_mistura,
+                            0, 0,
+                            al_get_bitmap_width(mistura[i].imagem_mistura),
+                            al_get_bitmap_height(mistura[i].imagem_mistura),
+                            mistura[i].x,
+                            mistura[i].y,
+                            mistura[i].w,
+                            mistura[i].h,
+                            0
+                        );
+                    }
+                }
+
+                // Verifica se o personagem coletou a mistura
+                for (int i = 0; i < total_mistura; i++) {
+                    if (mistura[i].is_visible) {
+                        bool coletou_mistura =
+                            personagem.pos_x < mistura[i].x + mistura[i].w &&
+                            personagem.pos_x + personagem.new_w > mistura[i].x &&
+                            personagem.pos_y < mistura[i].y + mistura[i].h &&
+                            personagem.pos_y + personagem.new_h > mistura[i].y;
+
+                        if (coletou_mistura) {
+                            potion.score += 1;
+                            mistura[i].is_visible = false;
+                            printf("Mistura coletada! Score: %d\n", potion.score);
+                        }
+                    }
+                }
+
+                // Desenha mistura maior na tela acima
+                for (int i = 0; i < total_mistura; i++) {
+                    if (mistura[i].is_visible) {
+                        int width = 100;
+                        int height = 130;
+                        al_draw_scaled_bitmap(
+                            mistura[i].imagem_mistura,
+                            0, 0,
+                            al_get_bitmap_width(mistura[i].imagem_mistura),
+                            al_get_bitmap_height(mistura[i].imagem_mistura),
+                            640,  // x
+                            50,  // y
+                            width,
+                            height,
+                            0
+                        );
+                    }
+                }
+
+                // Desenha inimigo
                 if (enemy.is_visible) {
                     al_draw_scaled_bitmap(inimigo_ghost, 0, 0, enemy.w_original, enemy.h_original, enemy.pos_x, enemy.pos_y, enemy.new_w, enemy.new_h, 0);
                 }
@@ -603,10 +736,13 @@ int main() {
                 al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
                 al_draw_filled_rectangle(potion.basket_x, potion.basket_y, potion.basket_x + potion.basket_w, potion.basket_y + potion.basket_h, al_map_rgb(200, 100, 100)); // Cesto para pegar as poções
                 al_draw_scaled_bitmap(potion_images[potion.potion_atual], 
-                                      0, 0, al_get_bitmap_width(potion_images[potion.potion_atual]), 
+                                      0, 0, 
+                                      al_get_bitmap_width(potion_images[potion.potion_atual]), 
                                       al_get_bitmap_height(potion_images[potion.potion_atual]),
-                                      potion.potion_x, potion.potion_y, 
-                                      potion.potion_w, potion.potion_h, 0);
+                                      potion.potion_x, 
+                                      potion.potion_y, 
+                                      potion.potion_w, 
+                                      potion.potion_h, 0);
                 al_draw_textf(font, al_map_rgb(255, 255, 255), 640, 20, 0, "Potions: %d", potion.score);
                 al_flip_display();
             }
@@ -653,17 +789,18 @@ int main() {
                     }
                 }
                 break;
-            case ALLEGRO_KEY_ENTER: //Drop de item
+            case ALLEGRO_KEY_ENTER: // Drop de item
                 if (personagem.potion_held != -1 && dropped_item_count < MAX_ITEMS) {
+                    potion_is_dropped = true;
                     // Adiciona a poção carregada no vetor de itens dropados
                     dropped_items[dropped_item_count].x = personagem.pos_x + (personagem.new_w / 2);
                     dropped_items[dropped_item_count].y = personagem.pos_y + personagem.new_h;
                     dropped_items[dropped_item_count].potion_type = personagem.potion_held;
 
-                    // Incrementa o contador de itens droppados
+                    // Itens dropados
                     dropped_item_count++;
 
-                    // Limpa a poção carregada pelo personagem
+                    // Tira a poção dropada da tela
                     personagem.potion_held = -1;
                 }
             }
