@@ -771,7 +771,6 @@ int main() {
                     }
 
                     al_draw_scaled_bitmap(personagem_img, 0, 0, personagem.w_original, personagem.h_original, personagem.pos_x, personagem.pos_y, personagem.new_w, personagem.new_h, 0);
-                    al_draw_filled_rectangle(potion.basket_x, potion.basket_y, potion.basket_x + potion.basket_w, potion.basket_y + potion.basket_h, al_map_rgb(200, 100, 100)); // Cesto para pegar as poções
                     al_draw_scaled_bitmap(potion_images[potion.potion_atual],
                         0, 0,
                         al_get_bitmap_width(potion_images[potion.potion_atual]),
